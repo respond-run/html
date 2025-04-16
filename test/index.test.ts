@@ -20,7 +20,7 @@ describe('html tagged template', () => {
     expect(result).toBe('<div><b>Bold</b></div>');
   });
 
-  it('collapses excessive whitespace and newlines', () => {
+  it('removes indentation from multiline input', () => {
     const result = html/*html*/`
       <div>
         <p>One</p>
@@ -29,7 +29,7 @@ describe('html tagged template', () => {
         <p>Two</p>
       </div>
     `;
-    expect(result).toBe('<div> <p>One</p> <p>Two</p> </div>');
+    expect(result).toBe('<div><p>One</p><p>Two</p></div>');
   });
 
   it('trims leading and trailing whitespace in multiline literals', () => {
@@ -38,11 +38,10 @@ describe('html tagged template', () => {
         <h1>Title</h1>
       </section>
     `;
-    expect(result).toBe('<section> <h1>Title</h1> </section>');
+    expect(result).toBe('<section><h1>Title</h1></section>');
   });
 
   it('preserves whitespace in single-line literals', () => {
-    // No newline so the literal should be preserved exactly
     const result = html/*html*/`<p>Hello, ${'World'}!</p>`;
     expect(result).toBe('<p>Hello, World!</p>');
   });

@@ -12,18 +12,15 @@ function escapeHtml(str: string): string {
 }
 
 /**
- * If the literal segment contains a newline, we assume it comes from
- * formatted (multiline) template input and collapse excessive whitespace.
- * Otherwise, we return it untouched.
+ * Collapse leading indentation from multiline strings,
+ * but avoid injecting extra spaces between HTML tags.
  */
 function cleanLiteralSegment(s: string): string {
-  if (!s.includes('\n')) {
-    return s;
-  }
+  if (!s.includes('\n')) return s;
   return s
-    .replace(/\s*\n\s*/g, ' ')  // Collapse newlines (and surrounding spaces) to a single space
-    .replace(/\s{2,}/g, ' ')     // Collapse multiple spaces to one
-    .trim();                    // Trim start and end
+    .split('\n')
+    .map(line => line.trim())
+    .join('');
 }
 
 export function html(
