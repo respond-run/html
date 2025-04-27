@@ -69,4 +69,32 @@ describe('html tagged template', () => {
     const result = html/*html*/`<span title="${quote}"></span>`;
     expect(result).toBe('<span title="&quot;hello&quot; &amp; &#39;world&#39;"></span>');
   });
+
+  it('renders numbers and booleans correctly', () => {
+    const result = html/*html*/`<p>${0}${false}${true}</p>`;
+    expect(result).toBe('<p>0falsetrue</p>');
+  });
+  
+  it('ignores null and undefined inside arrays', () => {
+    const list = [null, 'A', undefined, 'B'];
+    const result = html/*html*/`<span>${list}</span>`;
+    expect(result).toBe('<span>AB</span>');
+  });
+  
+  it('escapes plain objects', () => {
+    const obj = { foo: '<bar>' };
+    const result = html/*html*/`<div>${obj}</div>`;
+    expect(result).toBe('<div>[object Object]</div>');
+  });
+  
+  it('renders empty arrays as empty', () => {
+    const result = html/*html*/`<ul>${[]}</ul>`;
+    expect(result).toBe('<ul></ul>');
+  });
+  
+  it('handles mixed raw and escaped in one array', () => {
+    const arr = [raw('<i>ok</i>'), '<bad>'];
+    const result = html/*html*/`<p>${arr}</p>`;
+    expect(result).toBe('<p><i>ok</i>&lt;bad&gt;</p>');
+  });  
 });

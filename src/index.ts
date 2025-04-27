@@ -1,8 +1,14 @@
-export function raw(value: any) {
+/**
+ * Mark a string as raw HTML.
+ */
+export function raw(value: any): { __html: string } {
   return { __html: String(value) };
 }
 
-function escapeHtml(str: string): string {
+/**
+ * Escape HTML special characters.
+ */
+export function escapeHtml(str: string): string {
   return str
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -12,43 +18,73 @@ function escapeHtml(str: string): string {
 }
 
 /**
- * Collapse leading indentation from multiline strings,
- * but avoid injecting extra spaces between HTML tags.
+ * Trim common indent from multiline literal segments,
+ * join them with single spaces, and collapse spaces between tags.
  */
 function cleanLiteralSegment(s: string): string {
   if (!s.includes('\n')) return s;
-  return s
-    .split('\n')
-    .map(line => line.trim())
-    .join('');
+
+  // split into lines, drop leading/trailing blank lines
+  const lines = s.split(/\r?\n/);
+  let start = 0, end = lines.length;
+  while (start < end && lines[start].trim() === '') start++;
+  while (end > start && lines[end - 1].trim() === '') end--;
+  const relevant = lines.slice(start, end);
+  if (relevant.length === 0) return '';
+
+  // find min indent of non-blank lines
+  const indents = relevant
+    .filter(l => l.trim() !== '')
+    .map(l => (l.match(/^(\s*)/)![1].length));
+  const minIndent = Math.min(...indents);
+
+  // remove that indent, join with spaces, then collapse > <  
+  const joined = relevant
+    .map(l => l.slice(minIndent))
+    .join(' ')
+    .replace(/>\s+</g, '><');
+
+  return joined;
 }
 
+/**
+ * HTML template tag that escapes values by default,
+ * inlines raw HTML when wrapped in `raw(...)`, 
+ * and handles arrays.
+ */
 export function html(
   strings: TemplateStringsArray,
   ...values: any[]
 ): string {
-  let result = '';
+  let out = '';
 
   for (let i = 0; i < strings.length; i++) {
-    result += cleanLiteralSegment(strings[i]);
+    out += cleanLiteralSegment(strings[i]);
 
-    const value = values[i];
-    if (value == null) continue;
+    if (i >= values.length) continue;
+    const val = values[i];
+    if (val == null) continue;
 
-    if (Array.isArray(value)) {
-      result += value
-        .map(v =>
-          typeof v === 'object' && v?.__html != null
-            ? v.__html
-            : escapeHtml(String(v))
-        )
-        .join('');
-    } else if (typeof value === 'object' && value?.__html != null) {
-      result += value.__html;
+    const render = (v: any): string => {
+      if (
+        v &&
+        typeof v === 'object' &&
+        typeof (v as any).__html === 'string'
+      ) {
+        return (v as any).__html;
+      }
+      return escapeHtml(String(v));
+    };
+
+    if (Array.isArray(val)) {
+      out += val
+        .filter(v => v != null)
+        .map(render)
+        .join('')
     } else {
-      result += escapeHtml(String(value));
+      out += render(val);
     }
   }
 
-  return result;
+  return out;
 }
