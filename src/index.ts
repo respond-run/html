@@ -48,43 +48,37 @@ function cleanLiteralSegment(s: string): string {
 }
 
 /**
- * HTML template tag that escapes values by default,
- * inlines raw HTML when wrapped in `raw(...)`, 
- * and handles arrays.
+ * HTML interpolation from a template string + vars map.
  */
 export function html(
-  strings: TemplateStringsArray,
-  ...values: any[]
+  template: string,
+  vars: Record<string, any>
 ): string {
-  let out = '';
+  // 1. clean up indent, trim blank lines, collapse > <
+  const cleaned = cleanLiteralSegment(template)
 
-  for (let i = 0; i < strings.length; i++) {
-    out += cleanLiteralSegment(strings[i]);
+  // 2. rendering logic: raw HTML vs escaped
+  const render = (v: any): string => {
+    if (
+      v &&
+      typeof v === 'object' &&
+      typeof (v as any).__html === 'string'
+    ) {
+      return (v as any).__html
+    }
+    return escapeHtml(String(v))
+  }
 
-    if (i >= values.length) continue;
-    const val = values[i];
-    if (val == null) continue;
-
-    const render = (v: any): string => {
-      if (
-        v &&
-        typeof v === 'object' &&
-        typeof (v as any).__html === 'string'
-      ) {
-        return (v as any).__html;
-      }
-      return escapeHtml(String(v));
-    };
-
+  // 3. replace all $.varName occurrences
+  return cleaned.replace(/\$\.(\w+)/g, (_match, name) => {
+    const val = vars[name]
+    if (val == null) return ''
     if (Array.isArray(val)) {
-      out += val
+      return val
         .filter(v => v != null)
         .map(render)
         .join('')
-    } else {
-      out += render(val);
     }
-  }
-
-  return out;
+    return render(val)
+  })
 }
